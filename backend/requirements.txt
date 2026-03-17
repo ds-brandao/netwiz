@@ -16,3 +16,8 @@ websockets
 aiohttp
 requests
 llama-api-client
+pytest
+pytest-asyncio>=0.24,<1.0
+httpx
+pytest-cov
+ruff

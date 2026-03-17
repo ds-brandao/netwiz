@@ -745,15 +745,6 @@ async def agent_streaming_chat(
         traceback.print_exc()
         yield {"type": "error", "error": str(e)}
 
-# Backward compatibility functions
-def create_agent():
-    """Legacy function for compatibility"""
-    return None
-
-def create_streaming_agent(context: Optional[Dict[str, Any]] = None):
-    """Legacy function for compatibility"""
-    return None
-
 async def simple_streaming_chat(
     message: str, 
     context: Optional[Dict[str, Any]] = None, 

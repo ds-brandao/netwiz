@@ -856,9 +856,9 @@ async def execute_network_playbook(
         
         # Execute on Ansible server via SSH
         ssh_result = await execute_ssh_command(
-            host="192.168.0.131",
-            username="jack", 
-            password="password",
+            host=os.getenv("ANSIBLE_SERVER_HOST", "192.168.0.131"),
+            username=os.getenv("ANSIBLE_SERVER_USER", "jack"),
+            password=os.getenv("ANSIBLE_SERVER_PASSWORD", "password"),
             command=full_command
         )
         

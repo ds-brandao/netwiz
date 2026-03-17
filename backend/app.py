@@ -9,7 +9,7 @@ import json
 import asyncio
 from uuid import uuid4
 
-from agent import create_agent, create_streaming_agent, simple_streaming_chat, agent_streaming_chat
+from agent import simple_streaming_chat, agent_streaming_chat
 from database import init_db, get_db_session, Chat, NetworkNode, NetworkEdge
 from graph_service import graph_service
 from websocket_manager import connection_manager, periodic_ping
@@ -18,12 +18,16 @@ import time
 import requests
 import urllib3
 from requests.auth import HTTPBasicAuth
+from dotenv import load_dotenv
 import ssl
+import os
 
-# OpenSearch configuration for demo-infra
-OPENSEARCH_BASE_URL = "https://192.168.0.132:9200"
-OPENSEARCH_USERNAME = "admin"
-OPENSEARCH_PASSWORD = "xuwzuc-rExzo3-hotjed"
+load_dotenv()
+
+# OpenSearch configuration
+OPENSEARCH_BASE_URL = os.getenv("OPENSEARCH_URL", "https://localhost:9200")
+OPENSEARCH_USERNAME = os.getenv("OPENSEARCH_USER", "admin")
+OPENSEARCH_PASSWORD = os.getenv("OPENSEARCH_PASSWORD", "admin")
 OPENSEARCH_INDEXES = [
     "client-logs",
     "frr-router-logs", 
@@ -1044,18 +1048,20 @@ async def stream_chat(request: StreamingChatRequest):
 # Chat endpoint
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    """Handle chat messages with the AI agent"""
-    agent = create_agent()
-    
+    """Handle chat messages with the AI agent (non-streaming)"""
     try:
-        # Invoke agent
-        result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": request.message}]}
-        )
-        
-        # Get response
-        response_content = result["messages"][-1].content
-        
+        # Collect streamed response into a single string
+        response_parts = []
+        async for chunk in simple_streaming_chat(
+            message=request.message,
+            context=None,
+            conversation_history=None
+        ):
+            if chunk.get("type") == "text" and chunk.get("content"):
+                response_parts.append(chunk["content"])
+
+        response_content = "".join(response_parts)
+
         # Store in database
         async with get_db_session() as session:
             chat_record = Chat(
@@ -1066,7 +1072,7 @@ async def chat(request: ChatRequest):
             )
             session.add(chat_record)
             await session.commit()
-        
+
         return {
             "response": response_content,
             "session_id": request.session_id
